@@ -1,0 +1,346 @@
+/* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
+/* [ Created with wxMaxima version 23.05.1 ] */
+/* [wxMaxima: input   start ] */
+M:matrix([1,0,1,0,1],[0,1,1,0,1],[0,0,0,0,0],[1,1,1,1,0]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+N:matrix([0,1,1,0,1],[1,0,1,0,1],[0,0,0,0,0],[1,1,1,1,0]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+Nwrong:matrix([0,1,1,0,1],[1,0,0,0,0],[0,0,1,0,1],[1,1,1,1,0]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+M2:matrix([1,1,1,1,0],[1,0,1,0,1],[0,1,1,0,1],[0,0,0,0,0]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+is(equal(M,M2));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+Mresponse: submatrix(M,1,2);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+responseCols: makelist(i,i,3,5);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+Msignal: apply(submatrix, cons(M, responseCols));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+addcol(Msignal, Mresponse);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+matsize(A):=[length(A),length(transpose(A))];
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+rowsums(A):=map(lambda([r], [lsum(x, x, r)]), A);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+colsums(A):=map(lambda([r], [lsum(x, x, r)]), transpose(A));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+sortedRowsums(A):= sort(args(rowsums(A)));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+sortedColsums(A):= sort(args(colsums(A)));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+sortByRow(A,colIdx) :=  apply('matrix,sort(args(A), lambda([a,b], a[colIdx]<b[colIdx])));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+sortByCol(A,rowIdx) :=  transpose(apply('matrix,sort(args(transpose(A)), lambda([a,b], a[rowIdx]<b[rowIdx]))));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+sortByRowWithIndex(A, index) := submatrix(sortByRow(addcol(index,A),1),1);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+sortByColsum(A) := submatrix(1,sortByCol(addrow(transpose(colsums(A)),A),1));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+getRowIndex(A,colIdx,value):= block(
+    index: -1,    
+    for i:1 thru length(A) do block(
+        if A[i][colIdx] = value then index: i
+    ),
+    return(index)
+);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+truthtable_isequal(A,B,n_inputs) := block(
+    isEqual: false,
+    if A = B then (
+        isEqual: true,
+        return(true)
+    ),
+    
+    /* check for equal dimensions */
+    /* exclude unconnected in- and outputs before! */
+    dimA: matsize(A),
+    if dimA = matsize(B) then (
+        /* create submatrices */
+        n_outputs: dimA[2]-n_inputs,
+        signalCols: makelist(i,i,1,n_inputs),
+        responseCols: makelist(i,i,n_inputs+1,dimA[2]),
+        Ar: apply(submatrix, cons(A, signalCols)),
+        Br: apply(submatrix, cons(B, signalCols)),
+        As: apply(submatrix, cons(A, responseCols)),
+        Bs: apply(submatrix, cons(B, responseCols)),
+        
+        /* check for equal colsums and rowsums for responses */
+        if sortedRowsums(Ar) = sortedRowsums(Br) then (
+            if sortedColsums(Ar) = sortedColsums(Br) then (
+                /* check for equal rowsums */
+                if sortedRowsums(A) = sortedRowsums(B) then (
+                    /* create working matrix */
+                    Ar: sortByColsum(Ar),
+                    Br: sortByColsum(Br),
+                    rsumsAr: rowsums(Ar),
+                    rsumsBr: rowsums(Br),
+                    rsumsAs: rowsums(As),
+                    rsumsBs: rowsums(Bs),
+                    rowindex: makelist(i,i,1,dimA[1]),
+                    rowIdxNum: dimA[2]+3,
+                    mask: makelist(i,i,dimA[2]+1,rowIdxNum),
+                    
+                    /* don't work with rowsums anymore because of rowindexColumn */
+                    A: sortByRowWithIndex(addcol(As, Ar, rsumsAs, rsumsAr, rowindex), rsumsAr),
+                    B: sortByRowWithIndex(addcol(Bs, Br, rsumsBs, rsumsBr, rowindex), rsumsBr),
+                    print(A,B),
+                    /*
+                    if A = B then (
+                        isEqual: true,
+                        return: true
+                    )
+                    */
+                    
+                    rowGrouping: makelist(makelist(makelist(set(),2),n_outputs+1), n_inputs+1),
+                    groupSizeMap: makelist(set(), dimA[1]),
+                    
+                    for i:1 thru dimA[1] do (
+                        inIdxA: A[i][dimA[2]+1]+1,
+                        outIdxA: A[i][dimA[2]+2]+1,
+                        rowIdxA: A[i][rowIdxNum],
+                        inIdxB: B[i][dimA[2]+1]+1,
+                        outIdxB: B[i][dimA[2]+2]+1,
+                        rowIdxB: B[i][rowIdxNum],
+                        
+                        rowGrouping[inIdxA][outIdxA][1]: adjoin(rowIdxA,rowGrouping[inIdxA][outIdxA][1]),
+                        rowGrouping[inIdxB][outIdxB][2]: adjoin(rowIdxB,rowGrouping[inIdxB][outIdxB][2])
+                    ),
+                    print(rowGrouping),
+                    
+                    for i:1 thru length(rowGrouping) do (
+                        for j:1 thru length(rowGrouping[1]) do (
+                            s: rowGrouping[i][j][1],
+                            sSize: cardinality(s),
+                            if sSize > 0 then groupSizeMap[sSize]: adjoin([i,j], groupSizeMap[sSize])
+                        )
+                    ),
+                    print(groupSizeMap),
+                    
+                    /*
+                    A: sortByRow(A,rowIdxNum),
+                    B: sortByRow(B,rowIdxNum),
+                    */
+                                       
+                    for i in groupSizeMap do (
+                        for e in i do (
+                            /*
+                            print(e),
+                            print(listify(rowGrouping[e[1]][e[2]][1]), listify(rowGrouping[e[1]][e[2]][2])),
+                            */
+                            for j in listify(rowGrouping[e[1]][e[2]][1]) do (
+                                for k in listify(rowGrouping[e[1]][e[2]][2]) do (
+                                    rowIdxA: getRowIndex(A,rowIdxNum,j),
+                                    rowIdxB: getRowIndex(B,rowIdxNum,k),
+                                    if not rowIdxA = -1 and not rowIdxB = -1 then (
+                                        rowA: apply(submatrix, cons(row(A, rowIdxA), mask)),
+                                        rowB: apply(submatrix, cons(row(B, rowIdxB), mask)),
+                                        /*
+                                        print(j, rowIdxA, rowA, k, rowIdxB, rowB),
+                                        print(A,B),
+                                        */
+                                        if rowA = rowB then (
+                                            print("Die könnte man löschen."),
+                                            A: submatrix(rowIdxA, A),
+                                            B: submatrix(rowIdxB, B),
+                                            
+                                            if length(A) = 0 then (
+                                                isEqual: true,
+                                                return(true)
+                                            )
+                                        )
+                                        else (
+                                            print("Die könnte man nicht löschen.")
+                                        )
+                                    ) else print("Hier wurde wohl schon was gelöscht.")
+                                )
+                            )
+                        )
+                    ),
+                    print(A,B)
+                ) else (print("The matrices rowsums are unequal but response submatrices rowsums are equal."))
+            ) else (print("The response submatrices colsums are unequal."))
+        ) else (print("The response submatrices rowsums are unequal."))
+    ) else (print("The matrices dimensions are unequal.")),
+    
+    return(isEqual)
+);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+truthtable_isequal(M,N,2);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+truthtable_isequal(M,Nwrong,2);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+Nsort: addrow(transpose(colsums(N)),N);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+transpose(sortByCol(Nsort,1));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+sort(args(transpose(Nsort)), lambda([a,b], a[1]<b[1]));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+sortByColsum(N);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+sortByRowWithIndex(N,rowsums(N));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+sortByRowWithIndex(submatrix(N,3,4,5),rowsums(N));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+sortByRowWithIndex(submatrix(N,1,2),rowsums(N));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+permutations(makelist(i,i,3));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+list: makelist(makelist(makelist(set(),2),4), 3);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+list[1][1][1];
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+l:makelist();
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+list[1][1][1]: adjoin(1,list[1][1][1]);
+adjoin(2,list[1][1][1]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+set([1,2],[2,3]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+length(list);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+length(M);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+getRowIndex(Nwrong,1,2);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+truthtable_isequal(M,M,2);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+N2: submatrix(1,2,3,N);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+submatrix(1,N2);
+/* [wxMaxima: input   end   ] */
+
+
+
+/* Old versions of Maxima abort on loading files that end in a comment. */
+"Created with wxMaxima 23.05.1"$
