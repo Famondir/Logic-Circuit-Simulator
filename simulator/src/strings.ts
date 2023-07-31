@@ -188,6 +188,8 @@ const Strings_fr = {
         Undo: tuple("Annuler", "Annule la dernière action"),
         Redo: tuple("Rétablir", "Rétablit la dernière action annulée ou répète l’action précédente"),
 
+        // ToDo: translate generateTruthTable texts
+        generateTruthTable: tuple("Truth table", "Generates the truth table for all outputs by testing all input variants."),
         Download: tuple("Télécharger", "Télécharge le circuit (ou les composants personnalisés avec la touche Option/Alt)"),
         Screenshot: tuple("Screenshot", "Télécharge le circuit sous forme d’image (PNG ou SVG avec touche Option/Alt)"),
         Open: tuple("Ouvrir", "Ouvre un circuit précédemment téléchargé"),
@@ -922,6 +924,7 @@ const Strings_en: Strings = {
         Undo: tuple("Undo", "Undo the last action"),
         Redo: tuple("Redo", "Redo the last undone action or repeat the last action"),
 
+        generateTruthTable: tuple("Truth table", "Generates the truth table for all outputs by testing all input variants."),
         Download: tuple("Download", "Download the circuit (or the custom components with Option/Alt key down)"),
         Screenshot: tuple("Screenshot", "Download the circuit as an image (PNG or SVG with Option/Alt key down)"),
         Open: tuple("Open", "Open a previously downloaded circuit"),

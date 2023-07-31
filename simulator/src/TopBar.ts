@@ -47,11 +47,15 @@ export class TopBar {
 
     private readonly zoomLevelInput: HTMLInputElement
 
+    private readonly generateTruthTableButton: HTMLButtonElement
+
     public constructor(
         public readonly editor: LogicEditor,
     ) {
         const s = S.TopBar
         this.alwaysShowCircuitName = editor.isSingleton
+
+        this.generateTruthTableButton = this.makeButtonWithLabel("play", s.generateTruthTable, () => this.generateTruthTableHandler())
 
         this.dirtyIndicator = this.makeLabel(mods(style("margin: 3px 3px 0 -2px; font-size: 20pt"), "•", title(s.DirtyTooltip)))
         this.circuitNameLabel = this.makeLink(mods("", title(s.CircuitNameTooltip)), this.runSetCircuitNameDialog.bind(this))
@@ -146,6 +150,9 @@ export class TopBar {
                 this.timeLabel,
 
                 this.makeSep(true),
+                this.generateTruthTableButton,
+
+                this.makeSep(true),
                 this.designButton,
                 this.deleteButton,
 
@@ -224,6 +231,9 @@ export class TopBar {
         this.editor.setZoomLevel(zoom)
     }
 
+    private generateTruthTableHandler(e: MouseEvent) {
+        console.log("Los gehts mit dem Test")
+    }
 
     // Visibility methods
 
