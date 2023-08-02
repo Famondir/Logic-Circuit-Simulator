@@ -1,7 +1,7 @@
 /* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
 /* [ Created with wxMaxima version 23.05.1 ] */
 /* [wxMaxima: input   start ] */
-/* #---=== Data ===---# */
+/* #---=== Data ===---# */;
 /* [wxMaxima: input   end   ] */
 
 
@@ -131,6 +131,39 @@ sortByRow(A,colIdx) :=  apply('matrix,sort(args(A), lambda([a,b], a[colIdx]<b[co
 
 
 /* [wxMaxima: input   start ] */
+sortBy2Rows(A,colIdx1,colIdx2) :=  apply('matrix,sort(args(A), lambda([a,b], 
+            /*
+            print(a, b),
+            print(a[colIdx1],"<",b[colIdx1],":",result),
+            */
+            result: a[colIdx1]<b[colIdx1],
+            if a[colIdx1]=b[colIdx1] then result: a[colIdx2]<b[colIdx2]
+        )));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: hide output   ] *//* [wxMaxima: input   start ] */
+/*
+sortByRows(A,[colIdxs]) :=  block(
+    print(A),
+    end: length(colIdxs),
+    result: false,
+    apply('matrix,sort(args(A), lambda([a,b],
+            print(a, b),
+            for i:1 thru end do (
+                print("i: ",i),
+                result: a[colIdxs[i]]<b[colIdxs[i]],
+                print(a[colIdxs[i]],"<",b[colIdxs[i]],":",is(result)),
+                if not a[colIdxs[i]]=b[colIdxs[i]] or i = end then return(result)
+            )
+        ))),
+    return(A)
+);
+*/
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
 sortByCol(A,rowIdx) :=  transpose(apply('matrix,sort(args(transpose(A)), lambda([a,b], a[rowIdx]<b[rowIdx]))));
 /* [wxMaxima: input   end   ] */
 
@@ -219,8 +252,8 @@ permutationsForGrouping(groups):= block(
 /* [wxMaxima: input   end   ] */
 
 
-/* [wxMaxima: hide output   ] *//* [wxMaxima: input   start ] */
-truthtable_isequal_bruteforce(A,B,n_inputs,[debuginfo]) := block(
+/* [wxMaxima: input   start ] */
+truthtable_isequal_colAndRowsum_groups(A,B,n_inputs,[debuginfo]) := block(
     if length(debuginfo) = 0 then debuginfo: ["null"],
     /* print(debuginfo), */
     
@@ -236,15 +269,56 @@ truthtable_isequal_bruteforce(A,B,n_inputs,[debuginfo]) := block(
     /* check for equal dimensions */
     if dimA = matsize(B) then (
         /* catch and throw is the only way to escape multiple loops; return only jumps back one block / do */
-        catch(
+        catch (
             n_outputs: dimA[2]-n_inputs,
             signalCols: makelist(i,i,1,n_inputs),
             responseCols: makelist(i,i,n_inputs+1,dimA[2]),
             
             permutationsColsSignalsB: permutations(signalCols),
-            permutationsColsResponsesB: permutations(responseCols),
-            permutationsRowsB: permutations(makelist(i,i,1,dimA[1])),
+    
+            /* 
+            Idea:
+            sort by rowsums (or even better by tuple groups of rowsums for signals and results)
+            only check permutations where rows have same rowsums
+            */
+            rowsumIndexA: sortedRowsums(A),
+            rowsumIndexB: sortedRowsums(B),
+            A: sortByRowWithIndex(A, transpose(matrix(rowsumIndexA))),
+            B: sortByRowWithIndex(B, transpose(matrix(rowsumIndexB))),
+    
+            groups: makelist([],lmax(rowsumIndexA)+1),
+            for i:1 thru length(rowsumIndexA) do (
+                groups[rowsumIndexA[i]+1]: append(groups[rowsumIndexA[i]+1], [i])
+            ),
+            permutationsRowsB: permutationsForGrouping(groups),
             
+            /* 
+            Idea:
+            sort responses by colsums
+            only check permutations where cols have same colsums 
+            */
+            Asignals: apply(submatrix, cons(A, responseCols)),
+            Aresponses: sortByColsum(apply(submatrix, cons(A, signalCols))),
+            A: addcol(Asignals, Aresponses),
+            Bsignals: apply(submatrix, cons(B, responseCols)),
+            Bresponses: sortByColsum(apply(submatrix, cons(B, signalCols))),
+            B: addcol(Bsignals, Bresponses),
+            print(Asignals, Aresponses),
+            print(Bsignals, Bresponses),
+    
+            print(A, B),
+    
+            colsumIndex: flatten(args(colsums(Aresponses))),
+            print(colsumIndex),
+            groupsResponseCols: makelist([],lmax(colsumIndex)+1),
+            for i:1 thru length(colsumIndex) do (
+                groupsResponseCols[colsumIndex[i]+1]: append(groupsResponseCols[colsumIndex[i]+1], [i]+n_inputs)
+            ),
+            print(groupsResponseCols),
+            
+            permutationsColsResponsesB: permutationsForGrouping(groupsResponseCols),
+            print(permutationsColsResponsesB),
+    
             /* loop over all permutation combinations */
             for i1 in permutationsRowsB do (           
                 for i2 in permutationsColsSignalsB do (
@@ -299,23 +373,25 @@ truthtable_isequal_rowsum_groups(A,B,n_inputs,[debuginfo]) := block(
             permutationsColsSignalsB: permutations(signalCols),
             permutationsColsResponsesB: permutations(responseCols),
     
-    /* 
-    Idea:
-    sort by rowsums (or even better by tuple groups of rowsums for signals and results)
-    only check permutations where rows 
-    */
+            /* 
+            Idea:
+            sort by rowsums (or even better by tuple groups of rowsums for signals and results)
+            only check permutations where rows have same rowsums
+            */
             rowsumIndexA: sortedRowsums(A),
             rowsumIndexB: sortedRowsums(B),
             A: sortByRowWithIndex(A, transpose(matrix(rowsumIndexA))),
             B: sortByRowWithIndex(B, transpose(matrix(rowsumIndexB))),
     
-            print(rowsumIndexA),
+            /* print(rowsumIndexA), */
             groups: makelist([],lmax(rowsumIndexA)+1),
             for i:1 thru length(rowsumIndexA) do (
                 groups[rowsumIndexA[i]+1]: append(groups[rowsumIndexA[i]+1], [i])
             ),
+            /*            
             print(groups),
             print(permutationsForGrouping(groups)),
+            */
             permutationsRowsB: permutationsForGrouping(groups),
     
             /* loop over all permutation combinations */
@@ -347,15 +423,19 @@ truthtable_isequal_rowsum_groups(A,B,n_inputs,[debuginfo]) := block(
 /* [wxMaxima: input   end   ] */
 
 
+/* [wxMaxima: input   start ] */
+n_inpu
+/* [wxMaxima: input   end   ] */
+
+
 /* [wxMaxima: hide output   ] *//* [wxMaxima: input   start ] */
+/* not correct working */
 truthtable_isequal(A,B,n_inputs) := block(
     isEqual: false,
     if A = B then (
-        print("They are identical."),
         isEqual: true,
         return(true)
     ),
-    print(A,B),
     
     /* check for equal dimensions */
     /* exclude unconnected in- and outputs before! */
@@ -382,30 +462,24 @@ truthtable_isequal(A,B,n_inputs) := block(
                     rsumsBr: rowsums(Br),
                     rsumsAs: rowsums(As),
                     rsumsBs: rowsums(Bs),
-                    csumsAr: colsums(Ar),
-                    csumsBr: colsums(Br),
-                    csumsAs: colsums(As),
-                    csumsBs: colsums(Bs),
                     rowindex: makelist(i,i,1,dimA[1]),
                     rowIdxNum: dimA[2]+3,
                     mask: makelist(i,i,dimA[2]+1,rowIdxNum),
                     
                     /* don't work with rowsums anymore because of rowindexColumn */
-                    /* 
-                    this sorting might be unnecessary for the machine but helpful for humans for debugging
-                    also improves chances to find equality before starting the hard working process part
-                    */
                     A: sortByRowWithIndex(addcol(As, Ar, rsumsAs, rsumsAr, rowindex), rsumsAr),
                     B: sortByRowWithIndex(addcol(Bs, Br, rsumsBs, rsumsBr, rowindex), rsumsBr),
-                    
+                    print(A,B),
+                    /*
                     if A = B then (
-                        print("They got identical after sorting for response rowsums."),
                         isEqual: true,
                         return: true
-                    ),                    
+                    )
+                    */
                     
-                    /* create a reference which row has wich rowsum signals and responses */
-                    rowGrouping: makelist(makelist(makelist(set(),2),n_outputs+1), n_inputs+1),                    
+                    rowGrouping: makelist(makelist(makelist(set(),2),n_outputs+1), n_inputs+1),
+                    groupSizeMap: makelist(set(), dimA[1]),
+                    
                     for i:1 thru dimA[1] do (
                         inIdxA: A[i][dimA[2]+1]+1,
                         outIdxA: A[i][dimA[2]+2]+1,
@@ -419,7 +493,6 @@ truthtable_isequal(A,B,n_inputs) := block(
                     ),
                     print(rowGrouping),
                     
-                    groupSizeMap: makelist(set(), dimA[1]),
                     for i:1 thru length(rowGrouping) do (
                         for j:1 thru length(rowGrouping[1]) do (
                             s: rowGrouping[i][j][1],
@@ -434,14 +507,8 @@ truthtable_isequal(A,B,n_inputs) := block(
                     B: sortByRow(B,rowIdxNum),
                     */
                                        
-                    foundEqualRow: true,
-                    for i:1 thru length(groupSizeMap) do (
-                        for e in groupSizeMap[i] do (
-                            if not foundEqualRow then (
-                                return(false)
-                            ),
-                            foundEqualRow: false,
-        
+                    for i in groupSizeMap do (
+                        for e in i do (
                             /*
                             print(e),
                             print(listify(rowGrouping[e[1]][e[2]][1]), listify(rowGrouping[e[1]][e[2]][2])),
@@ -453,21 +520,14 @@ truthtable_isequal(A,B,n_inputs) := block(
                                     if not rowIdxA = -1 and not rowIdxB = -1 then (
                                         rowA: apply(submatrix, cons(row(A, rowIdxA), mask)),
                                         rowB: apply(submatrix, cons(row(B, rowIdxB), mask)),
-                                        
+                                        /*
                                         print(j, rowIdxA, rowA, k, rowIdxB, rowB),
                                         print(A,B),
-                                        
+                                        */
                                         if rowA = rowB then (
-                                            /*
-                                            Kann zu fehlern führen, falls man später in der zweiten Matrix Spalten vertauscht, 
-                                            könnten die zuvor bestehende Gleichheit u.U. verloren geganen sein.
-                                            Man müsste die entfernten Spalten also irgendwo abspeichern und testen,
-                                            möglicher Tausch für alle vorigen mutmaßlichen Identifikationen gültig ist.
-                                            */
                                             print("Die könnte man löschen."),
                                             A: submatrix(rowIdxA, A),
                                             B: submatrix(rowIdxB, B),
-                                            foundEqualRow: true,
                                             
                                             if length(A) = 0 then (
                                                 isEqual: true,
@@ -498,7 +558,7 @@ truthtable_isequal(A,B,n_inputs) := block(
 /* [wxMaxima: input   end   ] */
 
 
-/* [wxMaxima: input   start ] */
+/* [wxMaxima: hide output   ] *//* [wxMaxima: input   start ] */
 truthtable_isequal_bruteforce(M1A,M1B,1,"true","verbose","full");
 /* [wxMaxima: input   end   ] */
 
@@ -529,11 +589,16 @@ truthtable_isequal_rowsum_groups(M3,rowswap(M3, 4,6),3,"true","full");
 
 
 /* [wxMaxima: input   start ] */
-truthtable_isequal(M1A,M1B,1);
+truthtable_isequal_colAndRowsum_groups(M,N,2,"true","full");
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
+truthtable_isequal(M1A,M1B,1);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: hide output   ] *//* [wxMaxima: input   start ] */
 truthtable_isequal(M,N,2);
 /* [wxMaxima: input   end   ] */
 
@@ -550,11 +615,6 @@ truthtable_isequal(M3,M3,3);
 
 /* [wxMaxima: input   start ] */
 Nsort: addrow(transpose(colsums(N)),N);
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-
 /* [wxMaxima: input   end   ] */
 
 
@@ -759,6 +819,26 @@ length(rowsumIndexA);
 
 /* [wxMaxima: input   start ] */
 matrix(sortedColsums(N));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+is(equal(0,1));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+sortBy2Rows(matrix([0,0,1],[1,0,2],[0,1,2]),3,2);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+sortBy2Rows(matrix([0,0,1],[0,1,2],[1,0,2]),3,2);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+[1,2,3]+3;
 /* [wxMaxima: input   end   ] */
 
 
