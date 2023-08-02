@@ -257,7 +257,7 @@ permutationsForGrouping(groups):= block(
 /* [wxMaxima: input   end   ] */
 
 
-/* [wxMaxima: hide output   ] *//* [wxMaxima: input   start ] */
+/* [wxMaxima: input   start ] */
 truthtable_isequal_ColsumsAndRowResponseTupleSums_groups(A,B,n_inputs,[debuginfo]) := block(
     if length(debuginfo) = 0 then debuginfo: ["null"],
     /* print(debuginfo), */
@@ -286,28 +286,38 @@ truthtable_isequal_ColsumsAndRowResponseTupleSums_groups(A,B,n_inputs,[debuginfo
             sort by tuple groups of rowsums and response rowsums
             only check permutations where rows have same rowsums
             */
-            rowsumIndexA: sortedRowsums(A),
-            rowsumIndexB: sortedRowsums(B),
-            
-            A: sortByRowWithIndex(A, transpose(matrix(rowsumIndexA))),
-            B: sortByRowWithIndex(B, transpose(matrix(rowsumIndexB))),
+            /* sort for response row sums first (will decide draws in main sorting) */
+            responseRowsumIndexA: rowsums(apply(submatrix, cons(A, signalCols))),
+            responseRowsumIndexB: rowsums(apply(submatrix, cons(B, signalCols))),
+            A: sortByRowWithIndex(A, responseRowsumIndexA),
+            B: sortByRowWithIndex(B, responseRowsumIndexB),
+            /* sort for total rowsums */
+            rowsumIndexA: rowsums(A),
+            rowsumIndexB: rowsums(B),
+            A: sortByRowWithIndex(A, rowsumIndexA),
+            B: sortByRowWithIndex(B, rowsumIndexB),
+            rowsumIndexA: flatten(args(rowsums(A))),
+            rowsumIndexB: flatten(args(rowsums(B))),
     
-            groups: makelist([],lmax(rowsumIndexA)+1),
+            Aresponses: sortByColsum(apply(submatrix, cons(A, signalCols))),
+            Bresponses: sortByColsum(apply(submatrix, cons(B, signalCols))),
+            responseRowsumIndexA: flatten(args(rowsums(Aresponses))),
+            responseRowsumIndexB: flatten(args(rowsums(Bresponses))),
+                
+            groups: makelist([], (lmax(rowsumIndexA)+1)*(lmax(responseRowsumIndexA)+1)),
             for i:1 thru length(rowsumIndexA) do (
-                groups[rowsumIndexA[i]+1]: append(groups[rowsumIndexA[i]+1], [i])
+                groups[rowsumIndexA[i]+1+(responseRowsumIndexA[i]+1)*(lmax(responseRowsumIndexA)+1)]: append(groups[rowsumIndexA[i]+1+(responseRowsumIndexA[i]+1)*(lmax(responseRowsumIndexA)+1)], [i])
             ),
             permutationsRowsB: permutationsForGrouping(groups),
-            
+    
             /* 
             Idea:
             sort responses by colsums
             only check permutations where cols have same colsums 
             */
             Asignals: apply(submatrix, cons(A, responseCols)),
-            Aresponses: sortByColsum(apply(submatrix, cons(A, signalCols))),
             A: addcol(Asignals, Aresponses),
             Bsignals: apply(submatrix, cons(B, responseCols)),
-            Bresponses: sortByColsum(apply(submatrix, cons(B, signalCols))),
             B: addcol(Bsignals, Bresponses),
     
             colsumIndex: flatten(args(colsums(Aresponses))),
@@ -347,7 +357,7 @@ truthtable_isequal_ColsumsAndRowResponseTupleSums_groups(A,B,n_inputs,[debuginfo
 /* [wxMaxima: input   end   ] */
 
 
-/* [wxMaxima: input   start ] */
+/* [wxMaxima: hide output   ] *//* [wxMaxima: input   start ] */
 truthtable_isequal_colAndRowsum_groups(A,B,n_inputs,[debuginfo]) := block(
     if length(debuginfo) = 0 then debuginfo: ["null"],
     /* print(debuginfo), */
@@ -376,10 +386,10 @@ truthtable_isequal_colAndRowsum_groups(A,B,n_inputs,[debuginfo]) := block(
             sort by rowsums (or even better by tuple groups of rowsums for signals and results)
             only check permutations where rows have same rowsums
             */
-            rowsumIndexA: flatten(args(rowsums(A))),
-            rowsumIndexB: flatten(args(rowsums(B))),
-            A: sortByRowWithIndex(A, transpose(matrix(rowsumIndexA))),
-            B: sortByRowWithIndex(B, transpose(matrix(rowsumIndexB))),
+            rowsumIndexA: rowsums(A),
+            rowsumIndexB: rowsums(B),
+            A: sortByRowWithIndex(A, rowsumIndexA),
+            B: sortByRowWithIndex(B, rowsumIndexB),
             rowsumIndexA: flatten(args(rowsums(A))),
             rowsumIndexB: flatten(args(rowsums(B))),
     
@@ -406,7 +416,6 @@ truthtable_isequal_colAndRowsum_groups(A,B,n_inputs,[debuginfo]) := block(
             for i:1 thru length(colsumIndex) do (
                 groupsResponseCols[colsumIndex[i]+1]: append(groupsResponseCols[colsumIndex[i]+1], [i]+n_inputs)
             ),
-            
             permutationsColsResponsesB: permutationsForGrouping(groupsResponseCols),
     
             /* loop over all permutation combinations */
@@ -468,10 +477,10 @@ truthtable_isequal_rowsum_groups(A,B,n_inputs,[debuginfo]) := block(
             sort by rowsums (or even better by tuple groups of rowsums for signals and results)
             only check permutations where rows have same rowsums
             */
-            rowsumIndexA: flatten(args(rowsums(A))),
-            rowsumIndexB: flatten(args(rowsums(B))),
-            A: sortByRowWithIndex(A, transpose(matrix(rowsumIndexA))),
-            B: sortByRowWithIndex(B, transpose(matrix(rowsumIndexB))),
+            rowsumIndexA: rowsums(A),
+            rowsumIndexB: rowsums(B),
+            A: sortByRowWithIndex(A, rowsumIndexA),
+            B: sortByRowWithIndex(B, rowsumIndexB),
             rowsumIndexA: flatten(args(rowsums(A))),
             rowsumIndexB: flatten(args(rowsums(B))),
     
@@ -671,6 +680,11 @@ truthtable_isequal_colAndRowsum_groups(M,N,2,"true","full");
 
 
 /* [wxMaxima: input   start ] */
+truthtable_isequal_ColsumsAndRowResponseTupleSums_groups(M,N,2,"true","full");
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
 truthtable_isequal_bruteforce(M3,rowswap(M3, 4,6),3,"true","full");
 /* [wxMaxima: input   end   ] */
 
@@ -682,6 +696,11 @@ truthtable_isequal_rowsum_groups(M3,rowswap(M3, 4,6),3,"true","full");
 
 /* [wxMaxima: input   start ] */
 truthtable_isequal_colAndRowsum_groups(M3,rowswap(M3, 4,6),3,"true","full");
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+truthtable_isequal_ColsumsAndRowResponseTupleSums_groups(M3,rowswap(M3, 4,6),3,"true","full");
 /* [wxMaxima: input   end   ] */
 
 
