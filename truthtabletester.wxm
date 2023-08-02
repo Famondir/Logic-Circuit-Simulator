@@ -116,12 +116,12 @@ colsums(A):=transpose(map(lambda([r], [lsum(x, x, r)]), transpose(A)));
 
 
 /* [wxMaxima: input   start ] */
-sortedRowsums(A):= flatten(sort(args(rowsums(A))));
+sortedRowsums(A):= sort(flatten(args(rowsums(A))));
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-sortedColsums(A):= flatten(sort(args(colsums(A))));
+sortedColsums(A):= sort(flatten(args(colsums(A))));
 /* [wxMaxima: input   end   ] */
 
 
@@ -277,6 +277,8 @@ truthtable_isequal(A,B,n_inputs,[debuginfo]) := block(
         responseCols: makelist(i,i,n_inputs+1,dimA[2]),
         Ar: apply(submatrix, cons(A, signalCols)),
         Br: apply(submatrix, cons(B, signalCols)),
+        print(Ar, Br),
+        print(sortedColsums(Ar),sortedColsums(Br)),
         
         /* check for equal colsums and rowsums for responses */
         if sortedRowsums(Ar) = sortedRowsums(Br) then (
@@ -1145,6 +1147,61 @@ sortByRowWithIndex(Mx, rowsumIndexMx);
 
 /* [wxMaxima: input   start ] */
 sortByRowWith2Indices(Mx,rowsumIndexMx,responseRowsumIndexMx );
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+signals3: transpose(matrix([0,1,0,0,1,0,1,1],[0,0,1,0,1,1,0,1],[0,0,0,1,0,1,1,1]));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+responses3A: transpose(matrix([0,1,0,0,0,0,0,0],[0,0,1,0,0,0,0,0],[0,1,1,0,0,0,0,0],[0,0,0,1,0,0,0,0]));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+Q3A: addcol(signals3, responses3A);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+responses3B: transpose(matrix([0,1,0,0,0,0,0,0],[0,1,0,1,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,1,0,0,0,0,0]));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+Q3B: addcol(signals3, responses3B);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+truthtable_isequal(Q3A, Q3B, 3, "full", "true");
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+colsums(responses3B);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+colsums(responses3A);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+sortedColsums(responses3B);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+flatten(sort(args(colsums(responses3B))));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+sort(flatten(args(colsums(responses3B))));
 /* [wxMaxima: input   end   ] */
 
 
