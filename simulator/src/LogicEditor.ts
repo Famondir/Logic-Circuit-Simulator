@@ -40,7 +40,12 @@ import { gallery } from './gallery'
 import { Modifier, a, attr, attrBuilder, cls, div, emptyMod, href, input, label, option, select, span, style, target, title, type } from "./htmlgen"
 import { inlineIconSvgFor, isIconName, makeIcon } from "./images"
 import { DefaultLang, S, getLang, isLang, setLang } from "./strings"
-import { InBrowser, KeysOfByType, RichStringEnum, UIDisplay, copyToClipboard, formatString, getURLParameter, isArray, isEmbeddedInIframe, isFalsyString, isString, isTruthyString, onVisible, pasteFromClipboard, setDisplay, setVisible, showModal, toggleVisible } from "./utils"
+import { InBrowser, KeysOfByType, LogicValue, RichStringEnum, UIDisplay, copyToClipboard, formatString, getURLParameter, isArray, isEmbeddedInIframe, isFalsyString, isString, isTruthyString, onVisible, pasteFromClipboard, setDisplay, setVisible, showModal, toggleVisible } from "./utils"
+import { Input, InputRepr } from "./components/Input"
+import { Output } from "./components/Output"
+import { boolean } from "io-ts"
+import { cons } from "fp-ts/lib/ReadonlyNonEmptyArray"
+import { FunctorWithIndex } from "fp-ts/lib/FunctorWithIndex"
 
 
 
@@ -1141,6 +1146,83 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
     public resetCircuit() {
         this.editor.tryLoadCircuitFromData()
     }
+
+// #######################################################################################
+
+    /**
+     * Function to generate the truth table of the logic circuit
+     */
+    public generateTruthtable() {
+        console.log("Los gehts mit dem Test in der LogicEditor.ts");
+        // const oldPropagationDelay = this.editor.options.propagationDelay;
+        // this.editor._options.propagationDelay = 100;
+        // console.log(this.editor.options.propagationDelay);
+        const {inputs, outputs} = this.getInputsAndOutputs();
+
+        console.log(this.getInputAndOutputValues(inputs, outputs));
+        inputs[1].doSetValueSingleBit(true);
+        console.log(inputs[1].parent.recalcMgr.queueIsEmpty());
+        console.log(Date.now());
+
+        this.waitForPropagation(inputs, outputs);
+
+        // this.editor._options.propagationDelay = oldPropagationDelay;
+    }
+
+    private getInputsAndOutputs() {
+        const components = this.editor.editorRoot.components;
+        const inputs = [];
+        const outputs = [];
+
+        for(const comp of components.all()) {
+            if(comp instanceof Input) {
+                if((comp as Input).numBits !== 1) {
+                    // console.log("Input mit zu vielen Bits");
+                } else {
+                    // console.log("ein passender Input");
+                    inputs.push(comp);
+                }
+            } else if (comp instanceof Output) {
+                if((comp as Output).numBits !== 1) {
+                    // console.log("Output mit zu vielen Bits");
+                } else {
+                    // console.log("ein passender Output");
+                    outputs.push(comp);
+                }
+            } else {
+                // console.log("eine andere Komponente");
+            }
+        }
+
+        return {inputs, outputs};
+    }
+
+    private getComponentsValues(components: Component[]) {
+        const values:boolean[] = [];
+        for(const comp of components) {
+            values.push(comp.value);
+        }
+
+        return values;
+    }
+
+    private getInputAndOutputValues(inputs:Input[], outputs:Output[]) {
+        return this.getComponentsValues(inputs).concat(this.getComponentsValues(outputs));
+    }
+
+    private waitForPropagation = (inputs: Input[], outputs: Output[]) => {
+        if(!inputs[0].parent.recalcMgr.queueIsEmpty()) {
+            console.log(0);
+            setTimeout(this.waitForPropagation, 1, inputs, outputs);
+        } else {
+            console.log(1);
+            console.log(inputs[1].parent.recalcMgr.queueIsEmpty());
+            console.log(Date.now());
+            console.log(this.getInputAndOutputValues(inputs, outputs));
+        }
+    }
+
+// #######################################################################################
 
     public tryCloseCustomComponentEditor() {
         const editorRoot = this.editor.editorRoot

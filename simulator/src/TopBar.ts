@@ -231,8 +231,9 @@ export class TopBar {
         this.editor.setZoomLevel(zoom)
     }
 
-    private generateTruthTableHandler(e: MouseEvent) {
-        console.log("Los gehts mit dem Test")
+    private generateTruthTableHandler() {
+        this.editor.generateTruthtable();
+        
     }
 
     // Visibility methods

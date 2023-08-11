@@ -457,6 +457,10 @@ export class Input extends InputBase<InputRepr> {
         this.doSetValue(newValues)
     }
 
+    public doSetValueSingleBit(v: LogicValue) {
+        this.doSetValueChangingBit(0, v);
+    }
+
     public override doSetIsPushButton(isPushButton: boolean) {
         this._isPushButton = isPushButton
         if (isPushButton) {
