@@ -43,7 +43,7 @@ import { DefaultLang, S, getLang, isLang, setLang } from "./strings"
 import { InBrowser, KeysOfByType, LogicValue, RichStringEnum, UIDisplay, copyToClipboard, formatString, getURLParameter, isArray, isEmbeddedInIframe, isFalsyString, isString, isTruthyString, onVisible, pasteFromClipboard, setDisplay, setVisible, showModal, toggleVisible } from "./utils"
 import { Input, InputRepr } from "./components/Input"
 import { Output } from "./components/Output"
-import { boolean } from "io-ts"
+import { Int, boolean } from "io-ts"
 import { cons } from "fp-ts/lib/ReadonlyNonEmptyArray"
 import { FunctorWithIndex } from "fp-ts/lib/FunctorWithIndex"
 
@@ -1154,19 +1154,56 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
      */
     public generateTruthtable() {
         console.log("Los gehts mit dem Test in der LogicEditor.ts");
-        // const oldPropagationDelay = this.editor.options.propagationDelay;
-        // this.editor._options.propagationDelay = 100;
-        // console.log(this.editor.options.propagationDelay);
+        const oldPropagationDelay = this.editor.options.propagationDelay;
         const {inputs, outputs} = this.getInputsAndOutputs();
+        const oldInputValues = this.getComponentsValues(inputs);
+        console.log("Old input values: "+oldInputValues.toString());
 
-        console.log(this.getInputAndOutputValues(inputs, outputs));
-        inputs[1].doSetValueSingleBit(true);
-        console.log(inputs[1].parent.recalcMgr.queueIsEmpty());
-        console.log(Date.now());
+        // const inputPatterns = [[false, false],[true,false],[false,true],[true,true]];
+        let inputPatterns = this.getGrayCode(inputs.length);
+        // console.log(inputPatterns);
+        for(let i = 0; i<inputPatterns.length; i++) {
+            // console.log(inputPatterns[0]);
+            if (this.equalsCheck(oldInputValues, inputPatterns[0])) break;
+            inputPatterns = this.arrayRotate(inputPatterns);
+        }
+        // console.log(inputPatterns);
 
-        this.waitForPropagation(inputs, outputs);
+        console.log(this.iterateInputPatterns(inputPatterns,0));
 
-        // this.editor._options.propagationDelay = oldPropagationDelay;
+        try {
+            this.editor._options.propagationDelay = 0;
+            for (let i = 0; i < inputPatterns.length; i++) {
+                for (let j = 0; j < inputs.length; j++) {
+                    inputs[j].doSetValueSingleBit(inputPatterns[i][j]);
+                }
+    
+                console.log("Loop iteration: "+i+", RecalcManager is empty: "+inputs[0].parent.recalcMgr.queueIsEmpty());
+                //console.log(Date.now());
+                this.waitForPropagation(inputs, outputs);
+            }   
+        }
+        finally {
+            this.editor._options.propagationDelay = oldPropagationDelay;
+        }
+        
+/*
+        for (let j = 0; j < inputs.length; j++) {
+            inputs[j].doSetValueSingleBit(oldInputValues[j]);
+        }
+        const restoredInputValues = this.getComponentsValues(inputs);
+        console.log("Restored Values: "+restoredInputValues);
+        */
+    }
+
+
+    private iterateInputPatterns(inputPatterns: boolean[][], iterator: number): string {
+        console.log(inputPatterns[iterator]);
+        let result:string=""+iterator;
+        if (iterator < inputPatterns.length-1) {
+            result = result+this.iterateInputPatterns(inputPatterns, iterator+1);
+        }
+        return result;
     }
 
     private getInputsAndOutputs() {
@@ -1200,11 +1237,35 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
     private getComponentsValues(components: Component[]) {
         const values:boolean[] = [];
         for(const comp of components) {
-            values.push(comp.value);
+            values.push(comp.value[0]);
         }
 
         return values;
     }
+
+    private getGrayCode(len:number): boolean[][] {
+        let grayCode: boolean[][] = [[false], [true]];
+        for (let i = 2; i<=len; i++) {
+            grayCode = grayCode.map((x) => x.concat(false)).concat(grayCode.reverse().map((x) => x.concat(true)));
+        }
+        return grayCode;
+    }
+
+    private equalsCheck = (a:boolean[], b:boolean[]): boolean => {
+        console.log(JSON.stringify(a)+ "==="+ JSON.stringify(b))
+        return JSON.stringify(a) === JSON.stringify(b);
+    }
+
+    private arrayRotate(arr: boolean[][], reverse: boolean = false) {
+        if (reverse) {
+            let temp = arr.pop();
+            if (temp !== undefined) arr.unshift();
+        } else {
+            let temp = arr.shift();
+            if (temp !== undefined) arr.push(temp);
+        }
+        return arr;
+      }
 
     private getInputAndOutputValues(inputs:Input[], outputs:Output[]) {
         return this.getComponentsValues(inputs).concat(this.getComponentsValues(outputs));
@@ -1212,13 +1273,13 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
 
     private waitForPropagation = (inputs: Input[], outputs: Output[]) => {
         if(!inputs[0].parent.recalcMgr.queueIsEmpty()) {
-            console.log(0);
+            //console.log(0);
             setTimeout(this.waitForPropagation, 1, inputs, outputs);
         } else {
-            console.log(1);
-            console.log(inputs[1].parent.recalcMgr.queueIsEmpty());
-            console.log(Date.now());
-            console.log(this.getInputAndOutputValues(inputs, outputs));
+            //console.log(1);
+            console.log("RecalcManager is empty: "+inputs[0].parent.recalcMgr.queueIsEmpty());
+            //console.log(Date.now());
+            console.log(this.getInputAndOutputValues(inputs, outputs).toString());
         }
     }
 
