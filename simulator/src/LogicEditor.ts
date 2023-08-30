@@ -1153,15 +1153,18 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
      * Function to generate the truth table of the logic circuit
      */
     public generateTruthtable() {
-        console.log("Los gehts mit dem Test in der LogicEditor.ts");
-        const oldPropagationDelay = this.editor.options.propagationDelay;
-        const {inputs, outputs} = this.getInputsAndOutputs();
-        const oldInputValues = this.getComponentsValues(inputs);
+        console.log("generateTruthtable@LogicEditor.ts started");
+        const oldPropagationDelay = this.editor.options.propagationDelay; // saving old prpagation delay value
+        const {inputs, outputs} = this.getInputsAndOutputs(); // getting all single bit input and output components
+        const oldInputValues = this.getComponentsValues(inputs); // saving old input values
         console.log("Old input values: "+oldInputValues.toString());
 
         // const inputPatterns = [[false, false],[true,false],[false,true],[true,true]];
-        let inputPatterns = this.getGrayCode(inputs.length);
+        
+        let inputPatterns = this.getGrayCode(inputs.length); // get all possible input combinations with 1 bit distance
         // console.log(inputPatterns);
+        
+        // cycle through pattern array until the first pattern is equal to the actual one
         for(let i = 0; i<inputPatterns.length; i++) {
             // console.log(inputPatterns[0]);
             if (this.equalsCheck(oldInputValues, inputPatterns[0])) break;
@@ -1169,10 +1172,13 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
         }
         // console.log(inputPatterns);
 
-        console.log(this.iterateInputPatterns(inputPatterns,0));
-
         try {
             this.editor._options.propagationDelay = 0;
+
+            const truthtable = this.iterateInputPatterns(inputPatterns, 0, inputs, outputs);
+            console.log(truthtable);
+
+            /*
             for (let i = 0; i < inputPatterns.length; i++) {
                 for (let j = 0; j < inputs.length; j++) {
                     inputs[j].doSetValueSingleBit(inputPatterns[i][j]);
@@ -1181,29 +1187,55 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
                 console.log("Loop iteration: "+i+", RecalcManager is empty: "+inputs[0].parent.recalcMgr.queueIsEmpty());
                 //console.log(Date.now());
                 this.waitForPropagation(inputs, outputs);
-            }   
+            } 
+            */  
         }
         finally {
-            this.editor._options.propagationDelay = oldPropagationDelay;
+            this.editor._options.propagationDelay = oldPropagationDelay; // restoring propagation delay afterward
         }
         
-/*
+        /*
         for (let j = 0; j < inputs.length; j++) {
             inputs[j].doSetValueSingleBit(oldInputValues[j]);
         }
         const restoredInputValues = this.getComponentsValues(inputs);
         console.log("Restored Values: "+restoredInputValues);
         */
+
+        console.log("generateTruthtable@LogicEditor.ts finished");
     }
 
+    private iterateInputPatterns(inputPatterns: boolean[][], iterator: number, inputs: Input[], outputs: Output[]): boolean[][] {
+        console.log("Recent output values: "+this.getComponentsValues(outputs)); // should add those together with input values to a growing array due recursion        
+        const recentInputValues = this.getComponentsValues(inputs); // save input values of last step
+        
+        // set next input pattern
+        inputPatterns = this.arrayRotate(inputPatterns);
+        const newInputValues = inputPatterns[0];
+        
+        let truthtable: boolean[][] = [[]];
+        let grayFlag = false; 
+        
+        console.log("New input values: "+newInputValues.toString());
 
-    private iterateInputPatterns(inputPatterns: boolean[][], iterator: number): string {
-        console.log(inputPatterns[iterator]);
-        let result:string=""+iterator;
-        if (iterator < inputPatterns.length-1) {
-            result = result+this.iterateInputPatterns(inputPatterns, iterator+1);
+        for (let i = 0; i < recentInputValues.length; i++) {
+            if (recentInputValues[i] != newInputValues[i]) {
+                // check if there is an error with gray code traversion
+                if (grayFlag) {
+                    console.log("Warning: There should only be one different bit between two gray code patterns")
+                }
+
+                grayFlag = true;
+                inputs[i].doSetValueSingleBit(newInputValues[i]);
+                // waitForPropagation
+                truthtable = [newInputValues.concat(this.getComponentsValues(outputs))];
+
+                if (iterator < inputPatterns.length-1) {
+                    truthtable = truthtable.concat(this.iterateInputPatterns(inputPatterns, iterator+1, inputs, outputs));
+                }
+            }
         }
-        return result;
+        return truthtable;
     }
 
     private getInputsAndOutputs() {
@@ -1252,7 +1284,7 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
     }
 
     private equalsCheck = (a:boolean[], b:boolean[]): boolean => {
-        console.log(JSON.stringify(a)+ "==="+ JSON.stringify(b))
+        // console.log(JSON.stringify(a)+ "?=="+ JSON.stringify(b))
         return JSON.stringify(a) === JSON.stringify(b);
     }
 
