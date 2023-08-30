@@ -1191,16 +1191,21 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
             */  
         }
         finally {
+            const newInputValues = this.getComponentsValues(inputs);
+            if (!this.equalsCheck(oldInputValues, newInputValues)) {
+                console.log("Have to restore old input values. Recursion aborted?")
+
+                for (let i = 0; i < oldInputValues.length; i++) {
+                    if (oldInputValues[i] != newInputValues[i]) {
+                        inputs[i].doSetValueSingleBit(newInputValues[i]);
+                    }
+                }
+
+                // waitForPropagation
+            }
+
             this.editor._options.propagationDelay = oldPropagationDelay; // restoring propagation delay afterward
         }
-        
-        /*
-        for (let j = 0; j < inputs.length; j++) {
-            inputs[j].doSetValueSingleBit(oldInputValues[j]);
-        }
-        const restoredInputValues = this.getComponentsValues(inputs);
-        console.log("Restored Values: "+restoredInputValues);
-        */
 
         console.log("generateTruthtable@LogicEditor.ts finished");
     }
@@ -1228,6 +1233,12 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
                 grayFlag = true;
                 inputs[i].doSetValueSingleBit(newInputValues[i]);
                 // waitForPropagation
+                if (this.recalcMgr.queueIsEmpty()) {
+                    console.log("Finished")
+                } else {
+                    console.log("Ongoing")
+                }
+
                 truthtable = [newInputValues.concat(this.getComponentsValues(outputs))];
 
                 if (iterator < inputPatterns.length-1) {
@@ -1311,7 +1322,7 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
             //console.log(1);
             console.log("RecalcManager is empty: "+inputs[0].parent.recalcMgr.queueIsEmpty());
             //console.log(Date.now());
-            console.log(this.getInputAndOutputValues(inputs, outputs).toString());
+            //console.log(this.getInputAndOutputValues(inputs, outputs).toString());
         }
     }
 
