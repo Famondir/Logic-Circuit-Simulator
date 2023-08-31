@@ -1201,7 +1201,8 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
                     }
                 }
 
-                // waitForPropagation
+                // waitForPropagation?
+                // redraw?
             }
 
             this.editor._options.propagationDelay = oldPropagationDelay; // restoring propagation delay afterward
@@ -1231,16 +1232,21 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
                 }
 
                 grayFlag = true;
+                // warpHandle this; otherwise one needs to move mouse to process propagation
                 inputs[i].doSetValueSingleBit(newInputValues[i]);
+                this.recalcPropagateAndDrawIfNeeded(); // this is the important call from the wrapHandler
                 
                 // waitForPropagation
-                await this.delay(1);
+                // await this.delay(100);
+                await this.waitForPropagation();
 
+                /*
                 if (this.recalcMgr.queueIsEmpty()) {
                     console.log("Finished")
                 } else {
                     console.log("Ongoing")
                 }
+                */
 
                 truthtable = [newInputValues.concat(this.getComponentsValues(outputs))];
 
@@ -1252,9 +1258,9 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
         return truthtable;
     }
 
-    private delay = (seconds: number) => {
+    private delay = async (ms: number) => {
         return new Promise (
-            resolve => setTimeout (resolve, seconds * 1000)
+            resolve => setTimeout (resolve, ms)
         )
     };
 
@@ -1323,16 +1329,19 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
         return this.getComponentsValues(inputs).concat(this.getComponentsValues(outputs));
     }
 
-    private waitForPropagation = (inputs: Input[], outputs: Output[]) => {
-        if(!inputs[0].parent.recalcMgr.queueIsEmpty()) {
-            //console.log(0);
-            setTimeout(this.waitForPropagation, 1, inputs, outputs);
-        } else {
-            //console.log(1);
-            console.log("RecalcManager is empty: "+inputs[0].parent.recalcMgr.queueIsEmpty());
-            //console.log(Date.now());
-            //console.log(this.getInputAndOutputValues(inputs, outputs).toString());
+    private waitForPropagation = async () => {
+        for (let i = 0; i<1000; i++) {
+            console.log("RecalcMgr is empty: "+this.recalcMgr.queueIsEmpty());
+
+            if (!this.recalcMgr.queueIsEmpty()) {    
+                await this.delay(1);
+            } else {
+                return this.delay(0);
+            }
         }
+
+        console.log("Warning: Recalc did take longer than 1 second and was aborted!");
+        return this.delay(0);
     }
 
 // #######################################################################################
