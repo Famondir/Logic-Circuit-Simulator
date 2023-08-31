@@ -1332,23 +1332,18 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
     }
 
     private waitForPropagation = async () => {
-        for (let i = 0; i<1000; i++) {
+        for (let i = 0; i<1000; i++) { // abort after 1000 cycles (more than 1 s)
             console.log("RecalcMgr is empty: "+this.recalcMgr.queueIsEmpty());
 
             if (!this.recalcMgr.queueIsEmpty()) {    
                 await this.delay(1);
             } else {
-                const x = this.delay(0);
-                console.log(x);
-                const y = new Promise(resolve => {resolve(undefined)});
-                console.log(y);
-                return y;
-                // return new Promise(resolve => {return undefined})
+                return new Promise(resolve => {resolve(true)});
             }
         }
 
         console.log("Warning: Recalc did take longer than 1 second and was aborted!");
-        return this.delay(0);
+        return new Promise(resolve => {resolve(false)});
     }
 
 // #######################################################################################
