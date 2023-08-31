@@ -1152,7 +1152,7 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
     /**
      * Function to generate the truth table of the logic circuit
      */
-    public generateTruthtable() {
+    public generateTruthtable = async () => {
         console.log("generateTruthtable@LogicEditor.ts started");
         const oldPropagationDelay = this.editor.options.propagationDelay; // saving old prpagation delay value
         const {inputs, outputs} = this.getInputsAndOutputs(); // getting all single bit input and output components
@@ -1174,8 +1174,8 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
 
         try {
             this.editor._options.propagationDelay = 0;
-
-            const truthtable = this.iterateInputPatterns(inputPatterns, 0, inputs, outputs);
+            
+            const truthtable = await this.iterateInputPatterns(inputPatterns, 0, inputs, outputs);
             console.log(truthtable);
 
             /*
@@ -1210,7 +1210,7 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
         console.log("generateTruthtable@LogicEditor.ts finished");
     }
 
-    private iterateInputPatterns(inputPatterns: boolean[][], iterator: number, inputs: Input[], outputs: Output[]): boolean[][] {
+    private iterateInputPatterns = async (inputPatterns: boolean[][], iterator: number, inputs: Input[], outputs: Output[]): boolean[][] => {
         console.log("Recent output values: "+this.getComponentsValues(outputs)); // should add those together with input values to a growing array due recursion        
         const recentInputValues = this.getComponentsValues(inputs); // save input values of last step
         
@@ -1232,7 +1232,10 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
 
                 grayFlag = true;
                 inputs[i].doSetValueSingleBit(newInputValues[i]);
+                
                 // waitForPropagation
+                await this.delay(1);
+
                 if (this.recalcMgr.queueIsEmpty()) {
                     console.log("Finished")
                 } else {
@@ -1242,12 +1245,18 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
                 truthtable = [newInputValues.concat(this.getComponentsValues(outputs))];
 
                 if (iterator < inputPatterns.length-1) {
-                    truthtable = truthtable.concat(this.iterateInputPatterns(inputPatterns, iterator+1, inputs, outputs));
+                    truthtable = truthtable.concat(await this.iterateInputPatterns(inputPatterns, iterator+1, inputs, outputs));
                 }
             }
         }
         return truthtable;
     }
+
+    private delay = (seconds: number) => {
+        return new Promise (
+            resolve => setTimeout (resolve, seconds * 1000)
+        )
+    };
 
     private getInputsAndOutputs() {
         const components = this.editor.editorRoot.components;
