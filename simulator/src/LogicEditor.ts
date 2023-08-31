@@ -1203,6 +1203,8 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
 
                 // waitForPropagation?
                 // redraw?
+                // this.recalcPropagateAndDrawIfNeeded(); // does not help here
+                // this.doDraw();
             }
 
             this.editor._options.propagationDelay = oldPropagationDelay; // restoring propagation delay afterward
@@ -1238,7 +1240,7 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
                 
                 // waitForPropagation
                 // await this.delay(100);
-                await this.waitForPropagation();
+                const temp = await this.waitForPropagation();
 
                 /*
                 if (this.recalcMgr.queueIsEmpty()) {
@@ -1336,7 +1338,12 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
             if (!this.recalcMgr.queueIsEmpty()) {    
                 await this.delay(1);
             } else {
-                return this.delay(0);
+                const x = this.delay(0);
+                console.log(x);
+                const y = new Promise(resolve => {resolve(undefined)});
+                console.log(y);
+                return y;
+                // return new Promise(resolve => {return undefined})
             }
         }
 
