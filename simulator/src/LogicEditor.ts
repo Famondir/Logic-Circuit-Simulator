@@ -1160,17 +1160,13 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
         console.log("Old input values: "+oldInputValues.toString());
 
         // const inputPatterns = [[false, false],[true,false],[false,true],[true,true]];
-        
         let inputPatterns = this.getGrayCode(inputs.length); // get all possible input combinations with 1 bit distance
-        // console.log(inputPatterns);
         
         // cycle through pattern array until the first pattern is equal to the actual one
         for(let i = 0; i<inputPatterns.length; i++) {
-            // console.log(inputPatterns[0]);
             if (this.equalsCheck(oldInputValues, inputPatterns[0])) break;
             inputPatterns = this.arrayRotate(inputPatterns);
         }
-        // console.log(inputPatterns);
 
         try {
             this.editor._options.propagationDelay = 0;
@@ -1178,17 +1174,7 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
             const truthtable = await this.iterateInputPatterns(inputPatterns, 0, inputs, outputs);
             console.log(truthtable);
 
-            /*
-            for (let i = 0; i < inputPatterns.length; i++) {
-                for (let j = 0; j < inputs.length; j++) {
-                    inputs[j].doSetValueSingleBit(inputPatterns[i][j]);
-                }
-    
-                console.log("Loop iteration: "+i+", RecalcManager is empty: "+inputs[0].parent.recalcMgr.queueIsEmpty());
-                //console.log(Date.now());
-                this.waitForPropagation(inputs, outputs);
-            } 
-            */  
+            this.transmitTruthtable(truthtable, inputs.length);
         }
         finally {
             const newInputValues = this.getComponentsValues(inputs);
@@ -1211,6 +1197,28 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
         }
 
         console.log("generateTruthtable@LogicEditor.ts finished");
+    }
+
+    private transmitTruthtable(truthtable: boolean[][], n_inputs: number): void {
+        let tt: number[][] = [];
+        let rows = truthtable.length;
+        let columns = truthtable[0].length;
+
+        for (let i = 0; i < rows; i++) {
+            tt[i] = [];
+            for (let j = 0; j < columns; j++) {
+                if (truthtable[i][j] === true) {
+                    tt[i][j] = 1;
+                    console.log(i+","+j+": "+truthtable[i][j]+" => 1");
+                } else {
+                    tt[i][j] = 0;
+                    console.log(i+","+j+": "+truthtable[i][j]+" => 0");
+                }
+            }
+        }
+
+        const truthtableObj = {truthtable: tt, n_inputs: n_inputs}
+        window.parent.postMessage(JSON.stringify(truthtableObj), "*");
     }
 
     private iterateInputPatterns = async (inputPatterns: boolean[][], iterator: number, inputs: Input[], outputs: Output[]): boolean[][] => {
@@ -1241,14 +1249,6 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
                 // waitForPropagation
                 // await this.delay(100);
                 const temp = await this.waitForPropagation();
-
-                /*
-                if (this.recalcMgr.queueIsEmpty()) {
-                    console.log("Finished")
-                } else {
-                    console.log("Ongoing")
-                }
-                */
 
                 truthtable = [newInputValues.concat(this.getComponentsValues(outputs))];
 
@@ -1332,11 +1332,12 @@ export class LogicEditor extends HTMLElement implements DrawableParent {
     }
 
     private waitForPropagation = async () => {
+        const startTime = Date.now();
         for (let i = 0; i<1000; i++) { // abort after 1000 cycles (more than 1 s)
             if (!this.recalcMgr.queueIsEmpty()) {    
                 await this.delay(1);
             } else {
-                console.log("RecalcMgr is empty after "+i+" loops.");
+                console.log("RecalcMgr is empty after "+i+" loops. It took "+(Date.now()-startTime)+" ms.");
                 return new Promise(resolve => {resolve(true)});
             }
         }
